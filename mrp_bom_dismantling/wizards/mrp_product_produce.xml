@@ -15,7 +15,7 @@
 
             <!-- Add produced products list for managing lot_id -->
             <xpath expr="//group" position="after">
-                <group string="Products to produce lots" groups="stock.group_production_lot">
+                <group string="Products to produce lots" groups="stock.group_production_lot" name="products_to_produce_lots">
                     <field name="move_lot_ids" nolabel="1">
                         <tree editable="bottom" create="false" delete="false">
                             <field name="move_id" invisible="True"/>

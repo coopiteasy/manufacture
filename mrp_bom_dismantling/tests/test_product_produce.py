@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 
-from openerp.tests import TransactionCase
+from odoo.tests import TransactionCase
 
 
 class TestProductProduce(TransactionCase):
