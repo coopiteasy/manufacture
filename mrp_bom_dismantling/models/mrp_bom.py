@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # © 2016 Cyril Gaudin (Camptocamp)
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
@@ -78,7 +77,7 @@ class MrpBom(models.Model):
 
         # If no main component, take first sorted by Id
         if not main_component:
-            main_component = sorted(components.keys(), key=lambda c: c.id)[0]
+            main_component = sorted(list(components.keys()), key=lambda c: c.id)[0]
 
         # Create the BoM on main component
         main_component_needs = components.pop(main_component)
@@ -100,7 +99,7 @@ class MrpBom(models.Model):
 
         # Add others component as By-products
         subproduct_model = self.env['mrp.subproduct']
-        for component, needs in components.items():
+        for component, needs in list(components.items()):
             subproduct_model.create({
                 'bom_id': dismantling_bom.id,
                 'product_id': component.id,
