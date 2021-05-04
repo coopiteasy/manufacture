@@ -1,7 +1,9 @@
 # © 2016 Cyril Gaudin (Camptocamp)
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-
+import logging
 from odoo import _, api, exceptions, fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class MrpBom(models.Model):
@@ -31,7 +33,7 @@ class MrpBom(models.Model):
             'bom_id': self.id,
             'product_id': product.id,
             'product_qty': self.product_qty,
-            'product_uom': self.product_uom.id,
+            'product_uom_id': self.product_uom_id.id,
         })
 
         return self._get_form_view('mrp.production', production)
@@ -42,10 +44,10 @@ class MrpBom(models.Model):
         if needed or directly call create_dismantling_bom.
         """
         config_name = 'mrp.bom.dismantling.product_choice'
-        if self.env['ir.config_parameter'].get_param(config_name):
+        if self.env['ir.config_parameter'].sudo().get_param(config_name):
             return {
                 'type': 'ir.actions.act_window',
-                'name': _('Choose main compoment'),
+                'name': _('Choose main component'),
                 'view_type': 'form',
                 'view_mode': 'form',
                 'res_model': 'mrp.bom.dismantling_product_choice',
@@ -94,7 +96,7 @@ class MrpBom(models.Model):
             'bom_id': dismantling_bom.id,
             'product_id': product.id,
             'product_qty': self.product_qty,
-            'product_uom': self.product_uom.id,
+            'product_uom_id': self.product_uom_id.id,
         })
 
         # Add others component as By-products
@@ -104,7 +106,7 @@ class MrpBom(models.Model):
                 'bom_id': dismantling_bom.id,
                 'product_id': component.id,
                 'product_qty': needs,
-                'product_uom': self.env.ref('product.product_uom_unit').id,
+                'product_uom_id': self.env.ref('uom.product_uom_unit').id,
             })
 
         return self._get_form_view('mrp.bom', dismantling_bom)

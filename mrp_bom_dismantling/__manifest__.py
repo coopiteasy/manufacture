@@ -3,7 +3,7 @@
 {
     "name": "BOM Dismantling",
     "summary": "Ability to create a dismantling BOM by reversing a BOM.",
-    "version": "11.0.1.0.1",
+    "version": "12.0.1.0.0",
     "category": "Manufacturing",
     "website": "http://www.camptocamp.com/",
     "author": "Camptocamp, Odoo Community Association (OCA)",

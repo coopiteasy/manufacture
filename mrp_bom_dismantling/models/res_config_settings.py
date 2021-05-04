@@ -10,22 +10,22 @@ class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
     dismantling_product_choice = fields.Selection([
-        (0, "Main BOM product will be set randomly"),
-        (1, "User have to choose which component to set as main BOM product")
-    ], "Dismantling BOM")
+        ('random', "Main BOM product will be set randomly"),
+        ('user', "User have to choose which component to set as main BOM product")
+    ], default="random", string="Dismantling BOM", config_parameter='mrp.bom.dismantling.product_choice')
 
     @api.model
     def get_values(self):
         res = super(ResConfigSettings, self).get_values()
-        res.update(dismantling_product_choice=self.env[
-            'ir.config_parameter'].sudo().get_param(
-            'mrp.bom.dismantling.product_choice',
-            default=0)
+        ICPSudo = self.env['ir.config_parameter'].sudo()
+        dismantling_product_choice = ICPSudo.get_param('mrp.bom.dismantling.product_choice', default="random")
+        res.update(
+           dismantling_product_choice=dismantling_product_choice,
         )
         return res
 
-    @api.multi
+    @api.model
     def set_values(self):
         super(ResConfigSettings, self).set_values()
-        self.env['ir.config_parameter'].sudo().set_param(
-            'mrp.bom.dismantling.product_choice', self.dismantling_product_choice)
+        self.env['ir.config_parameter'].sudo().set_param('mrp.bom.dismantling.product_choice', self.dismantling_product_choice or "random")
+

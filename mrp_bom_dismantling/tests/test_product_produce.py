@@ -11,14 +11,14 @@ class TestProductProduce(TransactionCase):
         product_model = self.env['product.product']
         self.lot_model = self.env['stock.production.lot']
 
-        unit_uom = self.browse_ref('product.product_uom_unit')
+        unit_uom = self.env.ref('uom.product_uom_unit')
 
-        wh_main = self.browse_ref('stock.warehouse0')
+        wh_main = self.env.ref('stock.warehouse0')
 
         # Create simple bom with by products
-        self.p1 = product_model.create({'name': 'Test p1'})
-        self.p2 = product_model.create({'name': 'Test p2'})
-        self.p3 = product_model.create({'name': 'Test p3'})
+        self.p1 = product_model.create({'name': 'Test p1', 'type': 'product'})
+        self.p2 = product_model.create({'name': 'Test p2', 'type': 'product'})
+        self.p3 = product_model.create({'name': 'Test p3', 'type': 'product'})
 
         # We have 1 self.p2 in stock
         inventory = self.env['stock.inventory'].create({
@@ -26,7 +26,7 @@ class TestProductProduce(TransactionCase):
             'location_id': wh_main.lot_stock_id.id,
             'filter': 'partial'
         })
-        inventory.prepare_inventory()
+        inventory.action_start()  # equivalent of prepare_inventory in 9.0?
 
         self.env['stock.inventory.line'].create({
             'inventory_id': inventory.id,
@@ -34,34 +34,34 @@ class TestProductProduce(TransactionCase):
             'location_id': wh_main.lot_stock_id.id,
             'product_qty': 1
         })
-        inventory.action_done()
+        inventory.action_validate()  # equivalent of action_done in 9.0?
 
         # self.p1 need self.p2 and generates one byproduct self.p3
         bom = self.env['mrp.bom'].create({
             'product_tmpl_id': self.p1.product_tmpl_id.id,
             'product_id': self.p1.id,
             'product_qty': 1,
-            'product_uom': unit_uom.id,
+            'product_uom_id': unit_uom.id,
         })
 
         self.env['mrp.bom.line'].create({
             'bom_id': bom.id,
             'product_id': self.p2.id,
             'product_qty': 1,
-            'product_uom': unit_uom.id,
+            'product_uom_id': unit_uom.id,
         })
 
         self.env['mrp.subproduct'].create({
             'bom_id': bom.id,
             'product_id': self.p3.id,
             'product_qty': 1,
-            'product_uom': unit_uom.id,
+            'product_uom_id': unit_uom.id,
         })
 
         # Create MRP Order
         self.mrp_order_id = bom.create_mrp_production()['res_id']
         self.mrp_order = self.env['mrp.production'].browse(self.mrp_order_id)
-        self.mrp_order.action_confirm()
+        self.mrp_order._generate_moves()  # equivalent of action_confirm() in 9.0 ?
         self.mrp_order.action_assign()
 
     def test_produced_products_lots(self):
@@ -90,9 +90,9 @@ class TestProductProduce(TransactionCase):
         # Check created move in mrp.production
         self.mrp_order.refresh()
         self.assertEqual(lot_p1,
-                         self.mrp_order.move_created_ids2[0].restrict_lot_id)
+                         self.mrp_order.move_finished_ids[0].restrict_lot_id)  # equivalent move_created_ids2 in 9.0 ?
         self.assertEqual(lot_p3,
-                         self.mrp_order.move_created_ids2[1].restrict_lot_id)
+                         self.mrp_order.move_finished_ids[1].restrict_lot_id) # equivalent move_created_ids2 in 9.0 ?
 
         # Check stock.quants
         quant_model = self.env['stock.quant']
@@ -127,7 +127,8 @@ class TestProductProduce(TransactionCase):
         self.assertEqual(True, wizard.move_lot_ids[0].lot_required)
         self.assertEqual(True, wizard.move_lot_ids[1].lot_required)
 
-        wizard.mode = 'consume'
-        wizard.refresh()
-        self.assertEqual(False, wizard.move_lot_ids[0].lot_required)
-        self.assertEqual(False, wizard.move_lot_ids[1].lot_required)
+        # `mode` doesn't exist anymore in mrp.product.produce
+        # wizard.mode = 'consume'
+        # wizard.refresh()
+        # self.assertEqual(False, wizard.move_lot_ids[0].lot_required)
+        # self.assertEqual(False, wizard.move_lot_ids[1].lot_required)

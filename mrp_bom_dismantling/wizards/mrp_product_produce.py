@@ -16,11 +16,13 @@ class MrpByProductLine(models.TransientModel):
 
     lot_required = fields.Boolean(compute='_compute_lot_required')
 
-    @api.depends('produce_id.mode', 'product_id.tracking')
+    #@api.depends('produce_id.mode', 'product_id.tracking')
+    @api.depends('product_id.tracking')
     def _compute_lot_required(self):
         for record in self:
-            record.lot_required = record.product_id.tracking != 'none' \
-                and record.produce_id.mode == 'consume_produce'
+            record.lot_required = record.product_id.tracking != 'none' #\
+                #and record.produce_id.mode == 'consume_produce'
+                # `mode` doesn't exist anymore in `mrp.product.produce`
 
 
 class MrpProductProduce(models.TransientModel):
@@ -42,7 +44,7 @@ class MrpProductProduce(models.TransientModel):
 
             self.move_lot_ids = [
                 (0, None, {'move_id': move})
-                for move in mrp_prod.move_created_ids
+                for move in mrp_prod.move_finished_ids
             ]
 
     @api.multi

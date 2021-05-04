@@ -18,8 +18,8 @@ class TestBom(TransactionCase):
         self.mrp_production_model = self.env['mrp.production']
         self.config_param_model = self.env['ir.config_parameter']
 
-        self.unit_uom = self.browse_ref('product.product_uom_unit')
-        self.dozen_uom = self.browse_ref('product.product_uom_dozen')
+        self.unit_uom = self.env.ref('uom.product_uom_unit')
+        self.dozen_uom = self.env.ref('uom.product_uom_dozen')
 
     def check_result_and_load_entity(self, model_name, result, context=None):
         entity_id = result.pop('res_id')
@@ -40,7 +40,7 @@ class TestBom(TransactionCase):
             'product_tmpl_id': product.product_tmpl_id.id,
             'product_id': product.id,
             'product_qty': qty,
-            'product_uom': self.unit_uom.id if uom is None else uom.id,
+            'product_uom_id': self.unit_uom.id if uom is None else uom.id,
             'type': 'phantom' if phantom else 'normal',
         })
 
@@ -54,7 +54,7 @@ class TestBom(TransactionCase):
             'bom_id': bom.id,
             'product_id': component.id,
             'product_qty': qty,
-            'product_uom': self.unit_uom.id if uom is None else uom.id,
+            'product_uom_id': self.unit_uom.id if uom is None else uom.id,
         })
 
     def test_dismantling_no_components(self):
@@ -211,7 +211,7 @@ class TestBom(TransactionCase):
         dmtl_bom = self.check_result_and_load_entity('mrp.bom', result)
         self.assertEqual(p3.id, dmtl_bom.product_id.id)
         self.assertEqual(28, dmtl_bom.product_qty)
-        self.assertEqual(self.unit_uom, dmtl_bom.product_uom)
+        self.assertEqual(self.unit_uom, dmtl_bom.product_uom_id)
         self.assertEqual(True, dmtl_bom.dismantling)
         self.assertEqual(p1.id, dmtl_bom.dismantled_product_id.id)
 
@@ -221,7 +221,7 @@ class TestBom(TransactionCase):
         dmtl_bom_line = dmtl_bom.bom_line_ids[0]
         self.assertEqual(p1.id, dmtl_bom_line.product_id.id)
         self.assertEqual(1, dmtl_bom_line.product_qty)
-        self.assertEqual(self.dozen_uom, dmtl_bom_line.product_uom)
+        self.assertEqual(self.dozen_uom, dmtl_bom_line.product_uom_id)
 
         # Byproducts
         self.assertEqual(1, len(dmtl_bom.sub_products))
@@ -229,7 +229,7 @@ class TestBom(TransactionCase):
         dmtl_sub_product = dmtl_bom.sub_products[0]
         self.assertEqual(p4.id, dmtl_sub_product.product_id.id)
         self.assertEqual(24, dmtl_sub_product.product_qty)
-        self.assertEqual(self.unit_uom, dmtl_sub_product.product_uom)
+        self.assertEqual(self.unit_uom, dmtl_sub_product.product_uom_id)
 
     def test_create_mrp_production(self):
         p1 = self.product_model.create({'name': 'Test P1'})
@@ -248,7 +248,7 @@ class TestBom(TransactionCase):
         self.assertEqual(p1, mrp_prod.product_id)
         self.assertEqual(2, mrp_prod.product_qty)
         self.assertEqual(2, mrp_prod.product_qty)
-        self.assertEqual(self.dozen_uom, mrp_prod.product_uom)
+        self.assertEqual(self.dozen_uom, mrp_prod.product_uom_id)
 
     def test_action_create_dismantling_bom(self):
         # Set component automatically choosen.
@@ -278,7 +278,7 @@ class TestBom(TransactionCase):
 
         # Component must be choose by user
         self.config_param_model.set_param(
-            'mrp.bom.dismantling.product_choice', '1'
+            'mrp.bom.dismantling.product_choice', 'user'
         )
 
         result = p1_bom.action_create_dismantling_bom()
@@ -289,7 +289,7 @@ class TestBom(TransactionCase):
         # Response opened wizard
         self.assertEqual({
             'type': 'ir.actions.act_window',
-            'name': 'Choose main compoment',
+            'name': 'Choose main component',
             'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'mrp.bom.dismantling_product_choice',
@@ -303,20 +303,20 @@ class TestBom(TransactionCase):
             'mrp.bom.dismantling.product_choice', None
         )
 
-        mrp_config = self.env['mrp.config.settings'].create({
+        mrp_config = self.env['res.config.settings'].create({
             # Bypass default_get bug: https://github.com/odoo/odoo/pull/10373
             'group_product_variant': 0
         })
         self.assertEqual(
-            False, mrp_config.read(
+            "random", mrp_config.read(
                 ['dismantling_product_choice']
             )[0]['dismantling_product_choice']
         )
 
-        mrp_config.write({'dismantling_product_choice': 1})
+        mrp_config.write({'dismantling_product_choice': "user"})
         mrp_config.execute()
 
-        self.assertEqual('1', self.config_param_model.get_param(
+        self.assertEqual('user', self.config_param_model.get_param(
             'mrp.bom.dismantling.product_choice'
         ))
 
